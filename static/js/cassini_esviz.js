@@ -1,5 +1,5 @@
 var now = new Date().getTime();
-var data_size = 201; 
+var data_size = 501; 
 var data1 = randomData(data_size, now);
 var data2 = randomData(data_size, now);
 var data3 = randomData(data_size, now);
@@ -41,7 +41,7 @@ function randomData_const(data_size, final_time, c){
 
 d3.esnet.areachart().container("total_switches")
             .data([[data1_trunc]])
-            .size({w:600, h:100})
+            .size({w:600, h:200})
             .margin({top:10, bottom:25, left:20, right:40})
             
 d3.esnet.areachart().container("total_macs")
@@ -57,6 +57,6 @@ d3.esnet.areachart().container("total_users")
 d3.esnet.areachart()
             .container("total_traffic")
             .data([[data1], [data3]])
-            .size({w:600, h:100})
+            .size({w:600, h:200})
             .margin({top:10, bottom:25, left:20, right:40})
             .Tracker().Zoom()

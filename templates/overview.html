@@ -1,0 +1,47 @@
+{% include 'header.html' %}
+
+   
+{% include 'nav.html' %}
+
+
+<div class="page-header">
+    <h3>Cassini Network Edge Controller</h3>
+</div>
+  
+<div class="row">
+   <div class="col-md-3">
+  <h4>Totals</h4>
+
+  <table class="table table-hover">
+     <tr>
+        <td>Switches</td>
+        <td>{{ tot_switches }}</td>
+     </tr>
+     <tr>
+       <td>Hosts</td>
+       <td>{{ tot_hosts }}</td>
+     </tr> 
+     <tr>
+        <td>Users</td>
+        <td>{{ tot_users }}</td>
+     </tr> 
+   </table>
+
+ </div>
+ 
+ <div class="col-md-9">
+   <h4>Total Traffic</h4>
+     <div id="total_traffic"></div>  
+   <h4>Switches</h4>  
+     <div id="total_switches">
+     </div>
+   <h4>Hosts</h4>  
+     <div id="total_macs">
+     </div>
+   <h4>Users</h4>  
+     <div id="total_users">
+     </div>
+  </div>
+</div> 
+
+{% include 'footer.html' %}

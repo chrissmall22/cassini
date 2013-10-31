@@ -1,9 +1,9 @@
 from django.conf.urls import patterns, include, url
-from mysite.views import overview, switches, placeholder, about, contact, login, register
+from cassini import views
 
 # Uncomment the next two lines to enable the admin:
-from django.contrib import admin
-admin.autodiscover()
+#from django.contrib import admin
+#admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
@@ -14,14 +14,13 @@ urlpatterns = patterns('',
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', overview),
-    url(r'^switch/$', switches),
-    url(r'^user/$', placeholder),
-    url(r'^network/$', placeholder),
-    url(r'^workgroup/$', placeholder),
-    url(r'^about/$', about),
-    url(r'^contact/$', contact),
-    url(r'^login/$', login),
-    url(r'^register/$', register),
+    #url(r'^admin/', include(admin.site.urls)),
+    url(r'^$', views.overview), 
+    url(r'^user/$', views.placeholder),
+    url(r'^network/$', views.placeholder),
+    url(r'^workgroup/$', views.placeholder),
+    url(r'^about/$', views.about),
+    url(r'^contact/$', views.contact),
+    url(r'^login/$', views.login),
+    url(r'^foo/$', views.register),
 )

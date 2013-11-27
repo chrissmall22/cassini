@@ -9,7 +9,7 @@ from pox.lib.addresses import IPAddr, EthAddr
 
 
 # Create an engine and create all the tables we need
-engine = create_engine('mysql://root:rise56stop@localhost/test_cassini', echo=True)
+engine = create_engine('mysql://root:rise56stop@localhost/test_cassini', echo=False)
 #engine = create_engine('sqlite:///:memory:', echo=True)
 model_orm.metadata.bind = engine
 model_orm.metadata.create_all()
@@ -131,6 +131,25 @@ def set_mac_entry(packet,event,state):
     session.commit()
     
   return
+
+
+def set_mac_entry_state(mac,state):
+    
+    print "==SET MES== %s %s" % (mac, state)  
+    session.query(model_orm.NAC_MacTable).filter_by(mac=mac).update({"state": state})
+    session.flush()
+    session.commit()
+     
+    return
+
+
+# Get all the switches in "X" state
+def get_mac_entry_state(state):
+        
+  mac_q = session.query(model_orm.NAC_MacTable).filter_by(state=state).all()
+  if mac_q:
+    return mac_q
+
 
 
 def get_mac_entry(mac):

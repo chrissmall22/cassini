@@ -84,21 +84,17 @@ def redirect_html(event,packet,url):
       if tcp_in.dstport == HTTP_PORT:     
        # if packet is a SYN packet, send a SYN/ACK
        if tcp_in.SYN == True:
-         print "SYN Recieved, send SYN/ACK"
          offset = 20 + len(tcp_in.options)
-         print tcp_in, len(tcp_in.options), offset
          send_tcp_syn_ack(event,packet)
-         
-       # if packet is a ACK packet, establish connection
        elif (tcp_in.ACK == True and tcp_in.PSH == False):
-         print "ACK Recieved Connection established"
-         # Don't do anything here just wait for a PUSH/ACK
+         return
          
        elif (tcp_in.ACK == True and  tcp_in.PSH == True):
-         print "Http request seen" 
+         #print "Http request seen" 
          send_redirect(event,packet,url)
          send_tcp_reset(event,packet)
-            
+         
+       return     
 		
 def send_tcp_syn_ack(event,packet):
       
@@ -153,7 +149,7 @@ def send_tcp_reset (event,packet):
    tcp_in = packet.find("tcp")        
    
    
-   print "Send TCP Reset" 
+   #print "Send TCP Reset" 
    http_resp = pkt.tcp()
    payload = ""
        
@@ -202,7 +198,7 @@ def send_redirect (event,packet,url):
    tcp_in = packet.find("tcp")        
    
    
-   print "Send TCP Reset" 
+   #print "Send TCP Reset" 
    http_resp = pkt.tcp()
    payload = ""
        
@@ -278,54 +274,7 @@ def get_redirect_payload (url):
     return redirect_str
 
 
-def push_default_rules (event):
 
-   # Clear all existing rules
-   msg_flush = of.ofp_flow_mod(command=of.OFPFC_DELETE)
-   event.connection.send(msg_flush)
-
-   # Push default rules so a host can DHCP
-   # ARP 
-   msg_arp = of.ofp_flow_mod()
-   msg_arp.match.dl_type = pkt.ethernet.ARP_TYPE
-   msg_arp.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
-   event.connection.send(msg_arp)
-   
-   # DHCP 
-   msg_dhcp = of.ofp_flow_mod()
-   msg_dhcp.match.dl_type = pkt.ethernet.IP_TYPE
-   msg_dhcp.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
-   msg_dhcp.match.tp_src = pkt.dhcp.CLIENT_PORT
-   msg_dhcp.match.tp_dst = pkt.dhcp.SERVER_PORT
-    	
-   # Existing DHCPD server on network  -- client -> server
-   msg_dhcp.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
-   event.connection.send(msg_dhcp)
-        
-   # DHCP Server -> Client
-
-   msg_dhcp.match.tp_src = pkt.dhcp.SERVER_PORT
-   msg_dhcp.match.tp_dst = pkt.dhcp.CLIENT_PORT
-        
-   event.connection.send(msg_dhcp) 
-   
-def push_trusted_macs (event):
-   portal_host = '00:00:00:00:00:03'
-   test_host = '00:00:00:00:00:01'
-   
-   # To Portal Host 
-   msg_portal = of.ofp_flow_mod()
-   msg_portal.match.dl_dst = EthAddr(portal_host)
-   msg_portal.actions.append(of.ofp_action_output(port = 3))
-   event.connection.send(msg_portal)
-   
-   # From Portal Host 
-   msg_portal_ret = of.ofp_flow_mod()
-   msg_portal_ret.match.dl_src = EthAddr(portal_host)
-   msg_portal_ret.match.dl_dst = EthAddr(test_host)
-   msg_portal_ret.actions.append(of.ofp_action_output(port = 1))
-   event.connection.send(msg_portal_ret)
-   return
    
    
    

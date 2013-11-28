@@ -1,0 +1,14 @@
+Directory contains example mininet topologies to test Cassini:
+
+nac_simple.py - Single Switch topology
+  h1 = client
+  h2 = DHCP server
+  h3 = Portal
+  h4 = Gateway/Server Host
+
+nac_multi.py - Multiple Switch Topology
+
+nac_tun.py - Single Switch connect via GRE tunnel to external (non-mininet)
+  switch
+
+ 

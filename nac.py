@@ -202,7 +202,7 @@ def push_portal_ip (event):
      print "Portal IP %s " % (mac_entry.ip,) 
      # To Portal Host -- 80
      msg_http = of.ofp_flow_mod()
-     msg_http.priority = 20
+     #msg_http.priority = 20
      msg_http.match.dl_type = pkt.ethernet.IP_TYPE
      msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http.match.tp_dst = HTTP_PORT
@@ -215,7 +215,7 @@ def push_portal_ip (event):
      
      # From Portal Host -- 80
      msg_http_ret = of.ofp_flow_mod()
-     msg_http_ret.priority = 20
+     #msg_http_ret.priority = 20
      msg_http_ret.match.dl_type = pkt.ethernet.IP_TYPE
      msg_http_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http_ret.match.tp_src = HTTP_PORT

@@ -227,7 +227,9 @@ def send_redirect (event,packet,url):
    http_resp.options = tcp_in.options
    http_resp.off = 8
    http_resp.win = tcp_in.win
-   http_resp.payload = get_redirect_payload(url)
+   # Add mac and ip to url
+   url_f = url + "?mac=" +  str(e.dst) + "&ip=" + str(ipp.dstip)  
+   http_resp.payload = get_redirect_payload(url_f)
          
    #print "GET total size %d" % len(tcp_in)
    #print "GET payload size %d" % len(tcp_in.payload)
@@ -249,7 +251,7 @@ def send_redirect (event,packet,url):
 
 def get_redirect_payload (url):
 
-    captive_portal_url = url
+    captive_portal_url = url 
 
     # Get current time in RFC 1123 format
     now = datetime.now()

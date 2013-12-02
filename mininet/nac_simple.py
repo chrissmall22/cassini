@@ -24,7 +24,7 @@ def emptyNet():
 
     "Create a simulated condo of condos network"
 
-    net = Mininet( autoSetMacs=True, controller=lambda a: RemoteController(a, ip='192.168.94.1', port=6633 ))
+    net = Mininet( autoSetMacs=True, controller=lambda a: RemoteController(a, ip='192.168.56.1', port=6633 ))
     #net = Mininet( controller=Controller , switch=OVSSwitch)
 
     info( '*** Adding controller\n' )
@@ -56,7 +56,7 @@ def emptyNet():
     h1.cmd('ifconfig h1-eth0 0.0.0.0')
     h1.cmd('dhclient h1-eth0 &')
     h3.cmd('/etc/init.d/apache2 restart')
-    h4.cmd('/etc/init.d/apache2 restart')
+    h4.cmd('cd captive-portal/test_www; python -m SimpleHTTPServer 80')
 
 
     info( '*** Running CLI\n' )

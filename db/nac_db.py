@@ -150,6 +150,12 @@ def get_mac_entry_state(state):
   if mac_q:
     return mac_q
 
+def get_mac_entry_list(mac):
+        
+  mac_q = session.query(model_orm.NAC_MacTable).filter_by(mac=mac).all()
+  if mac_q:
+    return mac_q
+
 
 
 def get_mac_entry(mac):

@@ -50,10 +50,6 @@ class NAC (object):
     log.debug("Connection %s" % (event.connection,))
     # Allow ARP and DHCP everywhere
     push_default_rules(event)
-    # Allow traffic coming from router MAC
-    push_trusted_macs(event)
-    # Allow HTTP/HTTPS traffic to portal IP
-    push_portal_ip(event)
     # Register Switch in the DB
     add_switch_db(event)        
     
@@ -76,64 +72,138 @@ class NAC (object):
     if state == 'OPER':
       print "==OPER"
       # Push in normal rule     
-      msg_oper = of.ofp_flow_mod() 
-      msg_oper.match.dl_dst = packet.src
-      msg_oper.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-      event.connection.send(msg_oper)
-	
-    if state == 'REG':	
-      url = "http://10.200.0.3/cassini/index.cgi"
-      redirect_html(event,packet,url)
-      # TODO: Figure out why priorities arent working 
-      #denyflow(packet,event)
-      
+      push_normal(packet.sec,event)
+  	
+    if state == 'REG':
+      # if packet is DNS
+      if packet.find("dns"):
+        print "== DNS Packet port %s ==" % (event.port,)
+        push_dns_rule(event,packet.src)
+      # Check Packet is HTTP and redirect
+      tcp_in = packet.find("tcp")
+      if tcp_in:
+        if tcp_in.dstport == HTTP_PORT:
+           push_portal_rule(event,packet.src)
+           redirect_html(event,packet,'http://10.200.0.3/cassini/index.cgi')
+           #denyflow(packet,event)      
     if state == 'AUTH':
       print "==AUTH"
+      # This is a NOP for now but could put a scanner test here
       set_mac_entry_state(packet.src,'OPER')
       # Push in normal rule     
-      msg_oper = of.ofp_flow_mod() 
-      msg_oper.match.dl_dst = packet.src
-      msg_oper.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-      event.connection.send(msg_oper)  
+      push_normal(packet.src,event)
+
+
+"""
+Push rule to send DNS packet to GW/DNS Server
+"""
+
+def push_dns_rule (event,client_mac):
+
+  DNS_PORT = 53  
+
+  gw_mac_entry = get_mac_entry_state('PORT')
+  client_mac_entry_list = get_mac_entry_list(client_mac)
+  if not gw_mac_entry or not client_mac_entry_list:
+     print "==No GW Found=="
+     return
+
+  for gw_entry in gw_mac_entry:
+    print "==DNS rule add %s (mac: %s) -> port %s" % (gw_entry.ip,gw_entry.mac,gw_entry.port)
+    # To GW/DNS Host -- 53
+    msg_dns = of.ofp_flow_mod()
+    msg_dns.match.dl_type = pkt.ethernet.IP_TYPE
+    msg_dns.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
+    msg_dns.match.tp_dst = DNS_PORT
+    if gw_entry.mac:
+       msg_dns.match.dl_dst = gw_entry.mac 
+    # Send to Gateway MAC if on same SW as GW
+    #print "==DPIDS db: %s event: %s" % (gw_entry.dpid, event.dpid)
+    if ((int(gw_entry.dpid) == event.dpid) and gw_entry.port):
+      msg_dns.actions.append(of.ofp_action_output(port = gw_entry.port))
+    else:
+      #print "==Normal=="
+      # If not on same SW push in NORMAL rule
+      msg_dns.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
+    #print msg_dns
+    event.connection.send(msg_dns)  
+   
+  for client_mac_entry in client_mac_entry_list:
+    # From GW/DNS Host -- 53
+    print "==DNS rule RET add (mac: %s) -> port %s" % (client_mac_entry.mac,event.port)
+    msg_dns_ret = of.ofp_flow_mod()
+    msg_dns_ret.match.dl_type = pkt.ethernet.IP_TYPE
+    msg_dns_ret.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
+    msg_dns_ret.match.tp_src = DNS_PORT
+    
+    msg_dns_ret.match.dl_dst = client_mac_entry.mac
+    # Send to Client MAC if on same SW as Client
+    if ((int(client_mac_entry.dpid) == event.dpid) and client_mac_entry.port):
+       print "== DNS RET port %d" % (event.port,)
+       msg_dns_ret.actions.append(of.ofp_action_output(port = event.port))
+    else:
+      # If not on same SW push in NORMAL rule
+      print "==Normal=="
+      msg_dns_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
+    print msg_dns_ret
+    event.connection.send(msg_dns_ret)
+
+    return
+
+def push_portal_rule (event,client_mac):
+
+   HTTP_PORT = '80'
+
+   # Get all the trusted macs on the switch 
+   
+   #print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
+   gw_mac_entry_list = get_mac_entry_state('PORT')
+   client_mac_entry = get_mac_entry(client_mac)
+   if not gw_mac_entry or not client_mac_entry:
+     print "==No GW Found=="
+     return  
+
+   for gw_mac_entry in gw_mac_entry_list: 
+     print "== HTTP IP %s " % (gw_mac_entry.ip,) 
+     # To Portal Host -- 80
+     msg_http = of.ofp_flow_mod()
+     msg_http.match.dl_type = pkt.ethernet.IP_TYPE
+     msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
+     msg_http.match.tp_dst = HTTP_PORT
+     if gw_mac_entry.ip:
+       msg_http.match.nw_dst = IPAddr(gw_mac_entry.ip)
+     # Send to Gateway MAC if on same SW as GW 
+     if (gw_entry.dpid == event.dpid) and gw_entry.port:
+       msg_http.actions.append(of.ofp_action_output(port = gw_entry.port))
+     else:
+       # If not on same SW push in NORMAL rule
+       msg_http.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))    
+     event.connection.send(msg_http)
      
+     # From Portal Host -- 80
+     msg_http_ret = of.ofp_flow_mod()
+     msg_http_ret.match.dl_type = pkt.ethernet.IP_TYPE
+     msg_http_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
+     msg_http_ret.match.tp_src = HTTP_PORT
+     msg_http_ret.match.dl_src = EthAddr(client_mac_entry.mac)
+     # Send to Client MAC if on same SW as Client
+     if ((client_mac_entry.dpid == event.dpid) and client_mac_entry.port):
+       msg_http_ret.actions.append(of.ofp_action_output(port = event.port))
+     else:
+       # If not on same SW push in NORMAL rule
+       msg_http_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
+     event.connection.send(msg_http_ret)   
 
-def lookup(addr):
-  try:
-    return socket.gethostbyaddr(addr)
-  except socket.herror:
-    return None, None, None
 
-
-def path_bfs(event,dst_mac):
-  """
-  Get list of ports to get a path to a mac from a packet in
-  Uses Breadth First Search
-  """
-  # Get the location of the dst_mac
-  dst_entry = get_mac_entry(dst_mac)
-  dst_links = get_links_by_dpid(dst_entry.dpid)
-  # BFS
-  queue = [ ]
-  print "==="
-  print dst_links.a_dpid
-  queue.append(dst_links)
+"""
+Given mac address allow connections to it
+"""
+def push_normal(mac,event):
   
-  return 
-  while queue:
-    # Does dpid of queue 
-    path = queue.pop(0)
-    # get last node
-    node = path[-1]
-    # if node is src - path found
-    if (node.a_dpid == event.dpid) or (node.z_dpid == event.dpid): 
-       return path
-    # enumerate all nodes at level
-    links = get_links_by_dpid(node.a_dpid)
-    for next_entries in links:
-       new_path = list(path)
-       new_path.append(next_entries)
-       queue.append(new_path)
-       
+  msg_oper = of.ofp_flow_mod() 
+  msg_oper.match.dl_dst = mac
+  msg_oper.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
+  event.connection.send(msg_oper)
 
 def push_default_rules (event):
 
@@ -188,75 +258,6 @@ def push_trusted_macs (event):
    
    return  
 
-
-def push_portal_ip (event):
-
-   HTTP_PORT = 80
-   HTTPS_PORT = 443
-
-   # Get all the trusted macs on the switch 
-   
-   #print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
-   mac_entry_list = get_mac_entry_state('PORT')
-   for mac_entry in mac_entry_list: 
-     print "Portal IP %s " % (mac_entry.ip,) 
-     # To Portal Host -- 80
-     msg_http = of.ofp_flow_mod()
-     #msg_http.priority = 20
-     msg_http.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_http.match.tp_dst = HTTP_PORT
-     msg_http.match.nw_dst = IPAddr(mac_entry.ip)
-     if mac_entry.port:
-       msg_http.actions.append(of.ofp_action_output(port = mac_entry.port))
-     else: 
-       msg_http.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL)) 
-     event.connection.send(msg_http)
-     
-     # From Portal Host -- 80
-     msg_http_ret = of.ofp_flow_mod()
-     #msg_http_ret.priority = 20
-     msg_http_ret.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_http_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_http_ret.match.tp_src = HTTP_PORT
-     msg_http_ret.match.nw_src = IPAddr(mac_entry.ip)
-     if mac_entry.port:
-       msg_http_ret.actions.append(of.ofp_action_output(port = mac_entry.port))
-     else: 
-       msg_http_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL)) 
-     event.connection.send(msg_http_ret)
-     
-     # To Portal Host -- 443
-     msg_https = of.ofp_flow_mod()
-     msg_https.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_https.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_https.match.tp_dst = HTTPS_PORT
-     msg_https.match.nw_dst = IPAddr(mac_entry.ip)
-     #msg_https.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-     if mac_entry.port:
-       msg_https.actions.append(of.ofp_action_output(port = mac_entry.port))
-     else: 
-       msg_https.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL)) 
-     event.connection.send(msg_https)
-     
-     # From Portal Host -- 443
-     msg_https_ret = of.ofp_flow_mod()
-     msg_https_ret.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_https_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_https_ret.match.tp_src = HTTPS_PORT
-     msg_https_ret.match.nw_src = IPAddr(mac_entry.ip)
-     #msg_https_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-     if mac_entry.port:
-       msg_https_ret.actions.append(of.ofp_action_output(port = mac_entry.port))
-     else: 
-       msg_https_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL)) 
-     event.connection.send(msg_https_ret)
-
-        
-   return  
-   
-
-   
    
 def denyflow(flow, event):
 

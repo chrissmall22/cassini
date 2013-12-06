@@ -13,11 +13,7 @@ def send_nac_auth (ip,user_mac,user_ip,user_id):
 
   cassini_url = 'http://' + ip + ':8000/_jrpcmsg/'
   
-  #print "Connecting to AJAX server at %s" % (cassini_url,)
-  sys.stdout.flush()
-  os.system('netstat -rn')
-  #a = urllib2.urlopen(cassini_url)
-  #print "dddd" + a.code
+  print "<p>Connecting to AJAX server at %s</p>" % (cassini_url,)
 
   state = 'AUTH'
 
@@ -35,23 +31,23 @@ def send_nac_auth (ip,user_mac,user_ip,user_id):
   m['state'] = state 
 
   
-  #http_client.send('new!',m)
-  #if response.error:
-  #  print "Error:", response.error.code, response.error.message
-  #else:
-  #  print "Result:", response.result
+  http_client.send('new!',m)
+  if response.error:
+     print "Error:", response.error.code, response.error.message
+  else:
+     print "Result:", response.result
     
 
 
-cassini_ip = '192.168.56.1'
+cassini_ip = '140.142.21.80'
 
 form = cgi.FieldStorage()
 user_ip = form.getvalue("ip")
 user_mac = form.getvalue("mac")
-#user_id = os.environ['REMOTE_USER'] 
-user_mac = "00:00:00:00:00:01"
-user_ip = '10.200.0.1'
-user_id = "foo"
+user_id = os.environ['REMOTE_USER'] 
+#user_mac = "00:00:00:00:00:01"
+#user_ip = '10.200.0.1'
+#user_id = 'foo'
 
 
 print "Content-type:text/html\r\n\r\n"

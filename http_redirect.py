@@ -86,13 +86,17 @@ def redirect_html(event,packet,url):
        if tcp_in.SYN == True:
          offset = 20 + len(tcp_in.options)
          send_tcp_syn_ack(event,packet)
-       elif (tcp_in.ACK == True and tcp_in.PSH == False):
-         return
-         
+       elif (tcp_in.ACK == True and tcp_in.FIN == True):
+         print " === SEND TCP SYN ACK =="
+         #send_tcp_fin_ack(event,packet)
        elif (tcp_in.ACK == True and  tcp_in.PSH == True):
-         #print "Http request seen" 
+         print "Http request seen" 
+         # If havent
          send_redirect(event,packet,url)
-         send_tcp_reset(event,packet)
+         # Send proper termination sequence
+
+         #send_tcp_fin(event,packet)
+         #send_tcp_reset(event,packet)
          
        return     
 		
@@ -128,7 +132,7 @@ def send_tcp_syn_ack(event,packet):
       http_resp.win = tcp_in.win
       http_resp.off = 10
         
-	  # Hook them up...
+      # Hook them up...
       ipp.payload = http_resp
       e.payload = ipp
        
@@ -141,8 +145,106 @@ def send_tcp_syn_ack(event,packet):
       #print "Post pack"  
       #print  e.payload.payload
       msg.in_port = event.port
-      event.connection.send(msg)         
+      event.connection.send(msg)  
+
+def send_tcp_fin_ack (event,packet): 
+
+   # Check if TCP 
+   tcp_in = packet.find("tcp")        
+   
+   #print "Send TCP Reset" 
+   http_resp = pkt.tcp()
+   payload = ""
+       
+   # Send HTTP response packet
+   # Ethernet frame
+   e = pkt.ethernet()
+   e.src = packet.dst
+   e.dst = packet.src
+   e.type = e.IP_TYPE
+       
+   # Now create the IPv4 packet
+   ipp = pkt.ipv4()
+   ipp.protocol = ipp.TCP_PROTOCOL
+       
+   ipp.srcip = packet.find("ipv4").dstip
+   ipp.dstip = packet.find("ipv4").srcip
+   ipp.flags = packet.find("ipv4").flags
+        
+   http_resp.FIN = True 
+   http_resp.ACK = True     
+           
+   http_resp.dstport = tcp_in.srcport
+   http_resp.srcport = tcp_in.dstport
+   http_resp.seq = tcp_in.ack 
+   http_resp.ack = tcp_in.seq + len(tcp_in) + 24
+   http_resp.options = tcp_in.options
+   http_resp.off = 8
+   http_resp.win = tcp_in.win
+       
+    
+   # Hook them up...
+   ipp.payload = http_resp
+   e.payload = ipp
+       
+       
+   # Send it back to the input port
+   msg = of.ofp_packet_out()
+   msg.actions.append(of.ofp_action_output(port = of.OFPP_IN_PORT))
+   msg.data = e.pack()
+   msg.in_port = event.port
+   event.connection.send(msg)       
          
+def send_tcp_fin (event,packet): 
+
+   # Check if TCP 
+   tcp_in = packet.find("tcp")        
+   
+   
+   #print "Send TCP Reset" 
+   http_resp = pkt.tcp()
+   payload = ""
+       
+   # Send HTTP response packet
+   # Ethernet frame
+   e = pkt.ethernet()
+   e.src = packet.dst
+   e.dst = packet.src
+   e.type = e.IP_TYPE
+       
+   # Now create the IPv4 packet
+   ipp = pkt.ipv4()
+   ipp.protocol = ipp.TCP_PROTOCOL
+       
+   ipp.srcip = packet.find("ipv4").dstip
+   ipp.dstip = packet.find("ipv4").srcip
+   ipp.flags = packet.find("ipv4").flags
+        
+   http_resp.FIN = True     
+   http_resp.dstport = tcp_in.srcport
+   http_resp.srcport = tcp_in.dstport
+   http_resp.seq = tcp_in.ack 
+   http_resp.ack = tcp_in.seq + len(tcp_in) + 24
+   http_resp.options = tcp_in.options
+   http_resp.off = 8
+   http_resp.win = tcp_in.win
+       
+    
+   # Hook them up...
+   ipp.payload = http_resp
+   e.payload = ipp
+       
+       
+   # Send it back to the input port
+   msg = of.ofp_packet_out()
+   msg.actions.append(of.ofp_action_output(port = of.OFPP_IN_PORT))
+   msg.data = e.pack()
+   msg.in_port = event.port
+   event.connection.send(msg)
+
+
+
+
 def send_tcp_reset (event,packet): 
 
    # Check if TCP 
@@ -218,6 +320,7 @@ def send_redirect (event,packet,url):
    ipp.flags = packet.find("ipv4").flags
    
    # Now that we are established respond to any request with a redirect
+   # TODO: only do this if actually gettting a HTTP GET/POST
    http_resp.ACK = True
    http_resp.PSH = True
    http_resp.dstport = tcp_in.srcport
@@ -245,6 +348,7 @@ def send_redirect (event,packet,url):
    msg.in_port = event.port
    event.connection.send(msg)
          
+
 
      
    
@@ -275,10 +379,6 @@ def get_redirect_payload (url):
     redirect_str =  redirect_hdr + redirect_payload
     return redirect_str
 
-
-
-   
-   
    
 def gen_seq_num ():
 

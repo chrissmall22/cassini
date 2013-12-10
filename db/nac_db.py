@@ -123,7 +123,10 @@ def set_mac_entry(packet,event,state):
   mac_entry.dpid = event.dpid
   mac_entry.port = event.port
   
-  
+  # Dont save LOCAL mac
+  if (event.port == 65534):
+    return
+     
   mac_q = get_mac_entry(mac_entry.mac)
   if (not mac_q):
     session.add(mac_entry)
@@ -139,7 +142,10 @@ def set_mac_entry_state(mac,state):
     session.query(model_orm.NAC_MacTable).filter_by(mac=mac).update({"state": state})
     session.flush()
     session.commit()
-     
+    session.flush()
+    session.expire_all()
+    get_mac_entry(mac)
+
     return
 
 
@@ -149,6 +155,7 @@ def get_mac_entry_state(state):
   mac_q = session.query(model_orm.NAC_MacTable).filter_by(state=state).all()
   if mac_q:
     return mac_q
+  
 
 def get_mac_entry_list(mac):
         
@@ -159,10 +166,19 @@ def get_mac_entry_list(mac):
 
 
 def get_mac_entry(mac):
-        
+
+  session.commit()
+  session.flush()
+  session.expire_all()        
+  
+  #print " == GET MAC ENTRY %s" % (mac,) 
+  
   mac_q = session.query(model_orm.NAC_MacTable).filter_by(mac=mac).all()
   if mac_q:
+    #print " ==  GET MAC ENTRY %s state:%s" % (mac,mac_q[0].state)
     return mac_q[0]
+
+  
 
 
 def get_portal_ip():	

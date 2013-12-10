@@ -50,6 +50,8 @@ class NAC (object):
     log.debug("Connection %s" % (event.connection,))
     # Allow ARP and DHCP everywhere
     push_default_rules(event)
+    # push trusted hosts
+    push_trusted_hosts(event)
     # Register Switch in the DB
     add_switch_db(event)        
     
@@ -61,31 +63,40 @@ class NAC (object):
     # Check if in the known MAC addresses, if so move host to last known state
     if get_mac_entry(packet.src):
       state = get_mac_entry(packet.src).state
+      print "== DB State %s ==" % (state,)
     else: 
       state = 'REG'
       set_mac_entry(packet,event,state) 
     
     log.debug("Packet In, mac=%s DB state=%s",
               packet.src, state)
-    
+    print "=PI= mac=%s  state=%s db_state=%s" % ( packet.src, state, get_mac_entry(packet.src).state ) 
     # Check what state the host was in
     if state == 'OPER':
       print "==OPER"
       # Push in normal rule     
-      push_normal(packet.sec,event)
+      push_normal(packet.src,event)
   	
     if state == 'REG':
       # if packet is DNS
+      tcp_in = packet.find("tcp")
       if packet.find("dns"):
         print "== DNS Packet port %s ==" % (event.port,)
         push_dns_rule(event,packet.src)
+        #set_host_ip(mac,ip)  
+        print "== DNS Done =="
+        
       # Check Packet is HTTP and redirect
-      tcp_in = packet.find("tcp")
-      if tcp_in:
-        if tcp_in.dstport == HTTP_PORT:
+      elif tcp_in:
+        print "==TCP"
+        if tcp_in.dstport == 80:
+           print "== HTTP Packet port %s ==" % (event.port,)
            push_portal_rule(event,packet.src)
-           redirect_html(event,packet,'http://10.200.0.3/cassini/index.cgi')
-           #denyflow(packet,event)      
+           print "== HTTP Done == "
+           redirect_html(event,packet,'https://puppet.cac.washington.edu/cassini/index.cgi')
+           #push_portal_rule(event,packet.src)
+           #denyflow(packet,event)
+           
     if state == 'AUTH':
       print "==AUTH"
       # This is a NOP for now but could put a scanner test here
@@ -115,10 +126,13 @@ def push_dns_rule (event,client_mac):
     msg_dns.match.dl_type = pkt.ethernet.IP_TYPE
     msg_dns.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
     msg_dns.match.tp_dst = DNS_PORT
+    msg_dns.priority = of.OFP_DEFAULT_PRIORITY + 10
+    msg_dns.buffer_id = event.ofp.buffer_id
+
     if gw_entry.mac:
-       msg_dns.match.dl_dst = gw_entry.mac 
+       msg_dns.match.dl_dst = EthAddr(gw_entry.mac) 
     # Send to Gateway MAC if on same SW as GW
-    #print "==DPIDS db: %s event: %s" % (gw_entry.dpid, event.dpid)
+    print "==DPIDS db: %s event: %s %s" % (gw_entry.dpid, event.dpid, gw_entry.mac)
     if ((int(gw_entry.dpid) == event.dpid) and gw_entry.port):
       msg_dns.actions.append(of.ofp_action_output(port = gw_entry.port))
     else:
@@ -127,39 +141,42 @@ def push_dns_rule (event,client_mac):
       msg_dns.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
     #print msg_dns
     event.connection.send(msg_dns)  
-   
+  
   for client_mac_entry in client_mac_entry_list:
+    print client_mac_entry.mac
     # From GW/DNS Host -- 53
-    print "==DNS rule RET add (mac: %s) -> port %s" % (client_mac_entry.mac,event.port)
+    print "==DNS rule RET add (mac: %s) port %s" % (client_mac_entry.mac,event.port)
     msg_dns_ret = of.ofp_flow_mod()
     msg_dns_ret.match.dl_type = pkt.ethernet.IP_TYPE
     msg_dns_ret.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
     msg_dns_ret.match.tp_src = DNS_PORT
+    msg_dns_ret.priority = of.OFP_DEFAULT_PRIORITY + 10
+    msg_dns_ret.buffer_id = event.ofp.buffer_id
     
-    msg_dns_ret.match.dl_dst = client_mac_entry.mac
+    msg_dns_ret.match.dl_dst = EthAddr(client_mac_entry.mac)
     # Send to Client MAC if on same SW as Client
-    if ((int(client_mac_entry.dpid) == event.dpid) and client_mac_entry.port):
+    if int(client_mac_entry.dpid) == event.dpid and client_mac_entry.port:
        print "== DNS RET port %d" % (event.port,)
        msg_dns_ret.actions.append(of.ofp_action_output(port = event.port))
     else:
       # If not on same SW push in NORMAL rule
       print "==Normal=="
       msg_dns_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-    print msg_dns_ret
+    #print msg_dns_ret
     event.connection.send(msg_dns_ret)
-
-    return
+  
 
 def push_portal_rule (event,client_mac):
 
-   HTTP_PORT = '80'
+   HTTP_PORT = 80
+   HTTPS_PORT = 443
 
    # Get all the trusted macs on the switch 
    
-   #print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
+   print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
    gw_mac_entry_list = get_mac_entry_state('PORT')
-   client_mac_entry = get_mac_entry(client_mac)
-   if not gw_mac_entry or not client_mac_entry:
+   client_mac_entry_list = get_mac_entry_list(client_mac)
+   if not gw_mac_entry_list or not client_mac_entry_list:
      print "==No GW Found=="
      return  
 
@@ -170,38 +187,58 @@ def push_portal_rule (event,client_mac):
      msg_http.match.dl_type = pkt.ethernet.IP_TYPE
      msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http.match.tp_dst = HTTP_PORT
+     msg_http.priority = of.OFP_DEFAULT_PRIORITY + 10
+     msg_http.buffer_id = event.ofp.buffer_id
      if gw_mac_entry.ip:
        msg_http.match.nw_dst = IPAddr(gw_mac_entry.ip)
      # Send to Gateway MAC if on same SW as GW 
-     if (gw_entry.dpid == event.dpid) and gw_entry.port:
-       msg_http.actions.append(of.ofp_action_output(port = gw_entry.port))
+     if (int(gw_mac_entry.dpid) == event.dpid) and gw_mac_entry.port:
+       msg_http.actions.append(of.ofp_action_output(port = gw_mac_entry.port))
      else:
        # If not on same SW push in NORMAL rule
        msg_http.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))    
+     #event.connection.send(msg_http)
+     # And port 443
+     msg_http.match.tp_dst = HTTPS_PORT
      event.connection.send(msg_http)
      
+   for client_mac_entry in client_mac_entry_list: 
      # From Portal Host -- 80
      msg_http_ret = of.ofp_flow_mod()
      msg_http_ret.match.dl_type = pkt.ethernet.IP_TYPE
      msg_http_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http_ret.match.tp_src = HTTP_PORT
-     msg_http_ret.match.dl_src = EthAddr(client_mac_entry.mac)
+     msg_http_ret.priority = of.OFP_DEFAULT_PRIORITY + 10
+     #msg_http_ret.buffer_id = event.ofp.buffer_id
+     msg_http_ret.match.dl_dst = EthAddr(client_mac_entry.mac)
      # Send to Client MAC if on same SW as Client
-     if ((client_mac_entry.dpid == event.dpid) and client_mac_entry.port):
+     if ((int(client_mac_entry.dpid) == event.dpid) and client_mac_entry.port):
        msg_http_ret.actions.append(of.ofp_action_output(port = event.port))
      else:
        # If not on same SW push in NORMAL rule
        msg_http_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-     event.connection.send(msg_http_ret)   
+     #event.connection.send(msg_http_ret)
+     # Send HTTPS
+     msg_http_ret.match.tp_src = HTTPS_PORT
+     event.connection.send(msg_http_ret)
+      
+
 
 
 """
 Given mac address allow connections to it
 """
 def push_normal(mac,event):
+
+  # Delete all existing Rules about mac
+
+  msg_del = of.ofp_flow_mod() 
+  msg_del.match.dl_src = mac
+  msg_del.actions.append(of.ofp_action_output(port = of.OFPFC_DELETE))
+  event.connection.send(msg_del)
   
   msg_oper = of.ofp_flow_mod() 
-  msg_oper.match.dl_dst = mac
+  msg_oper.match.dl_src = mac
   msg_oper.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
   event.connection.send(msg_oper)
 
@@ -236,13 +273,40 @@ def push_default_rules (event):
         
    event.connection.send(msg_dhcp)
 
+
+   # Push all DNS and HTTP to contriller to set up paths to portal and dns server
+   # Port 80 to controller
+   msg_http = of.ofp_flow_mod()
+   msg_http.match.dl_type = pkt.ethernet.IP_TYPE
+   msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
+   msg_http.match.tp_dst = 80
+   #msg_http.priority = of.OFP_DEFAULT_PRIORITY - 10
+   msg_http.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER))
+   #event.connection.send(msg_http)
    
-def push_trusted_macs (event):
+   # Push all DNS and HTTP to contriller to set up paths to portal and dns server
+   # Port 53
+   msg_dhcp = of.ofp_flow_mod()
+   msg_dhcp.match.dl_type = pkt.ethernet.IP_TYPE
+   msg_dhcp.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
+   msg_dhcp.match.tp_dst = 53
+   #msg_dhcp.priority = of.OFP_DEFAULT_PRIORITY - 10
+   msg_dhcp.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER))
+   #event.connection.send(msg_dhcp)
+
+   # Drop everything except for the DNS and HTTP
+   msg_drop = of.ofp_flow_mod()
+   msg_drop.priority = of.OFP_DEFAULT_PRIORITY - 10
+   #event.connection.send(msg_drop)
+   
+   
+
+ 
+def push_trusted_hosts (event):
 
    # Get all the trusted macs on the switch 
-   
    #print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
-   mac_entry_list = get_mac_entry_state('TRUS')
+   mac_entry_list = get_mac_entry_state('PORT')
    for mac_entry in mac_entry_list:
      db_dpid = int(mac_entry.dpid)
      #print "Trusted2 MAC %s %d db: %d" % (mac_entry.mac,event.dpid,db_dpid) 
@@ -252,7 +316,7 @@ def push_trusted_macs (event):
        msg_trust = of.ofp_flow_mod()
        msg_trust.match.dl_src = EthAddr(mac_entry.mac)
        msg_trust.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-       event.connection.send(msg_trust)
+       #event.connection.send(msg_trust)
        
        
    

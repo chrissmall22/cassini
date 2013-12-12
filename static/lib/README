@@ -1,0 +1,20 @@
+# lib directory contains all the extermal Javascript dependancies
+
+Dependancies:
+
+* Bootstrap 
+   http://getbootstrap.com
+
+   https://github.com/twbs/bootstrap/releases/download/v3.0.3/bootstrap-3.0.3-dist.zip
+
+* ESNet graphing library
+   https://github.com/esnet/esviz
+
+   Pull with git
+   git clone https://github.com/esnet/esviz.git
+
+
+   Zip File
+   https://github.com/esnet/esviz/archive/master.zip
+
+

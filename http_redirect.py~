@@ -31,7 +31,6 @@ from time import mktime
 from cassini.db import nac_db, model_orm
 from cassini.db.nac_db import *
 
-
 import socket
 
 #import mysql.connector
@@ -90,14 +89,14 @@ def redirect_html(event,packet,url,rnum):
          send_tcp_syn_ack(event,packet)
          print "== SYN/ACK"
        # if TCP is established
-       elif (tcp_in.ACK == True and tcp_in.PSH == False and tcp_in.FIN == False and tcp_in.RST == False): 
+       elif (tcp_in.ACK == True and tcp_in.PSH == False and tcp_in.FIN == False ): 
          print "== Established ACK recieved"
        elif (tcp_in.ACK == True and  tcp_in.PSH == True):
          # Check if we have sent a request already
          if rnum < 1: 
-           # Lets check if this is a HTTP GET/POS
+           # TODO: Lets check if this is a HTTP GET/POS
            request  = packet.raw[66:69]
-           if (str(request) == 'GET' or str(request) == 'POS') :
+           if str(request) == 'GET':
              print "Http request seen %s : %d : %d request" % (request, packet.hdr_len,rnum)
              # Install path to portal
              push_portal_rule(event,packet.src)
@@ -116,21 +115,9 @@ def redirect_html(event,packet,url,rnum):
          # Close our side of the connection
          send_tcp_fin_ack(event,packet)
          rnum = 0
-       elif (tcp_in.RST == True):
-         print "== Reset recieved Connection closed"
-         rnum = 0 
          #send_tcp_reset(event,packet)
-         #denyflow(packet,event)
+         
        return rnum   
-
-
-def denyflow(flow, event):
-
-  msg_drop = of.ofp_flow_mod()
-  msg_drop.priority = 10
-  msg_drop.match.dl_src = flow.src
-  event.connection.send(msg_drop)
-  return
 		
 def send_tcp_syn_ack(event,packet):
       
@@ -255,8 +242,8 @@ def send_tcp_fin (event,packet):
    http_resp.FIN = True     
    http_resp.dstport = tcp_in.srcport
    http_resp.srcport = tcp_in.dstport
-   http_resp.seq = tcp_in.seq
-   http_resp.ack = 0 
+   http_resp.seq = tcp_in.ack 
+   http_resp.ack = tcp_in.seq 
    http_resp.options = tcp_in.options
    http_resp.off = 8
    http_resp.win = tcp_in.win
@@ -416,7 +403,7 @@ def push_portal_rule (event,client_mac):
      msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http.match.tp_dst = HTTP_PORT
      msg_http.priority = of.OFP_DEFAULT_PRIORITY + 10
-     #msg_http.buffer_id = event.ofp.buffer_id
+     msg_http.buffer_id = event.ofp.buffer_id
      if gw_mac_entry.ip:
        msg_http.match.nw_dst = IPAddr(gw_mac_entry.ip)
      # Send to Gateway MAC if on same SW as GW 

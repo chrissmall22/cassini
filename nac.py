@@ -40,7 +40,8 @@ class NAC (object):
 
     HTTP_PORT = 80
     HTTPS_PORT = 443
-
+    
+    self.num_redirect = 0 
 
     # We want to hear PacketIn messages, so we listen
     # to the connection
@@ -63,14 +64,14 @@ class NAC (object):
     # Check if in the known MAC addresses, if so move host to last known state
     if get_mac_entry(packet.src):
       state = get_mac_entry(packet.src).state
-      print "== DB State %s ==" % (state,)
+      #print "== DB State %s ==" % (state,)
     else: 
       state = 'REG'
       set_mac_entry(packet,event,state) 
     
     log.debug("Packet In, mac=%s DB state=%s",
               packet.src, state)
-    print "=PI= mac=%s  state=%s db_state=%s" % ( packet.src, state, get_mac_entry(packet.src).state ) 
+    #print "=PI= mac=%s  state=%s db_state=%s" % ( packet.src, state, get_mac_entry(packet.src).state ) 
     # Check what state the host was in
     if state == 'OPER':
       print "==OPER"
@@ -81,26 +82,29 @@ class NAC (object):
       # if packet is DNS
       tcp_in = packet.find("tcp")
       if packet.find("dns"):
-        print "== DNS Packet port %s ==" % (event.port,)
+        #print "== DNS Packet port %s ==" % (event.port,)
         push_dns_rule(event,packet.src)
         #set_host_ip(mac,ip)  
-        print "== DNS Done =="
+        #print "== DNS Done =="
         
       # Check Packet is HTTP and redirect
       elif tcp_in:
-        print "==TCP"
+        #print "==TCP"
         if tcp_in.dstport == 80:
-           print "== HTTP Packet port %s ==" % (event.port,)
-           push_portal_rule(event,packet.src)
-           print "== HTTP Done == "
-           redirect_html(event,packet,'https://puppet.cac.washington.edu/cassini/index.cgi')
+           #print "== HTTP Packet port %s ==" % (event.port,)
            #push_portal_rule(event,packet.src)
-           #denyflow(packet,event)
+           print "== HTTP Packet redirect_html == %d" % (self.num_redirect)
+           ret = redirect_html(event,packet,'https://puppet.cac.washington.edu/cassini/index.cgi',self.num_redirect)
+           self.num_redirect = ret
+           #push_portal_rule(event,packet.src)
+           
            
     if state == 'AUTH':
       print "==AUTH"
       # This is a NOP for now but could put a scanner test here
       set_mac_entry_state(packet.src,'OPER')
+      # Remove all rules based on client mac
+      #remove_rules(packet.src,event)
       # Push in normal rule     
       push_normal(packet.src,event)
 
@@ -151,7 +155,7 @@ def push_dns_rule (event,client_mac):
     msg_dns_ret.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
     msg_dns_ret.match.tp_src = DNS_PORT
     msg_dns_ret.priority = of.OFP_DEFAULT_PRIORITY + 10
-    msg_dns_ret.buffer_id = event.ofp.buffer_id
+    #msg_dns_ret.buffer_id = event.ofp.buffer_id
     
     msg_dns_ret.match.dl_dst = EthAddr(client_mac_entry.mac)
     # Send to Client MAC if on same SW as Client
@@ -166,63 +170,6 @@ def push_dns_rule (event,client_mac):
     event.connection.send(msg_dns_ret)
   
 
-def push_portal_rule (event,client_mac):
-
-   HTTP_PORT = 80
-   HTTPS_PORT = 443
-
-   # Get all the trusted macs on the switch 
-   
-   print "== Pushing trusted MACs into the flow table DPID: %s" % (event.dpid,)
-   gw_mac_entry_list = get_mac_entry_state('PORT')
-   client_mac_entry_list = get_mac_entry_list(client_mac)
-   if not gw_mac_entry_list or not client_mac_entry_list:
-     print "==No GW Found=="
-     return  
-
-   for gw_mac_entry in gw_mac_entry_list: 
-     print "== HTTP IP %s " % (gw_mac_entry.ip,) 
-     # To Portal Host -- 80
-     msg_http = of.ofp_flow_mod()
-     msg_http.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_http.match.tp_dst = HTTP_PORT
-     msg_http.priority = of.OFP_DEFAULT_PRIORITY + 10
-     msg_http.buffer_id = event.ofp.buffer_id
-     if gw_mac_entry.ip:
-       msg_http.match.nw_dst = IPAddr(gw_mac_entry.ip)
-     # Send to Gateway MAC if on same SW as GW 
-     if (int(gw_mac_entry.dpid) == event.dpid) and gw_mac_entry.port:
-       msg_http.actions.append(of.ofp_action_output(port = gw_mac_entry.port))
-     else:
-       # If not on same SW push in NORMAL rule
-       msg_http.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))    
-     #event.connection.send(msg_http)
-     # And port 443
-     msg_http.match.tp_dst = HTTPS_PORT
-     event.connection.send(msg_http)
-     
-   for client_mac_entry in client_mac_entry_list: 
-     # From Portal Host -- 80
-     msg_http_ret = of.ofp_flow_mod()
-     msg_http_ret.match.dl_type = pkt.ethernet.IP_TYPE
-     msg_http_ret.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
-     msg_http_ret.match.tp_src = HTTP_PORT
-     msg_http_ret.priority = of.OFP_DEFAULT_PRIORITY + 10
-     #msg_http_ret.buffer_id = event.ofp.buffer_id
-     msg_http_ret.match.dl_dst = EthAddr(client_mac_entry.mac)
-     # Send to Client MAC if on same SW as Client
-     if ((int(client_mac_entry.dpid) == event.dpid) and client_mac_entry.port):
-       msg_http_ret.actions.append(of.ofp_action_output(port = event.port))
-     else:
-       # If not on same SW push in NORMAL rule
-       msg_http_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-     #event.connection.send(msg_http_ret)
-     # Send HTTPS
-     msg_http_ret.match.tp_src = HTTPS_PORT
-     event.connection.send(msg_http_ret)
-      
-
 
 
 """
@@ -236,6 +183,11 @@ def push_normal(mac,event):
   msg_del.match.dl_src = mac
   msg_del.actions.append(of.ofp_action_output(port = of.OFPFC_DELETE))
   event.connection.send(msg_del)
+  
+  msg_del2 = of.ofp_flow_mod() 
+  msg_del2.match.dl_dst = mac
+  msg_del2.actions.append(of.ofp_action_output(port = of.OFPFC_DELETE))
+  event.connection.send(msg_del2)
   
   msg_oper = of.ofp_flow_mod() 
   msg_oper.match.dl_src = mac
@@ -316,7 +268,7 @@ def push_trusted_hosts (event):
        msg_trust = of.ofp_flow_mod()
        msg_trust.match.dl_src = EthAddr(mac_entry.mac)
        msg_trust.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
-       #event.connection.send(msg_trust)
+       event.connection.send(msg_trust)
        
        
    
@@ -353,6 +305,7 @@ class nac_multi (object):
       # Validate
       if (state == 'AUTH' or state == 'REG' or state == 'TRUS'): 
         set_mac_entry_state(mac,state) 
+        set_mac_entry_user(mac,user)
                       
     nac_channel.addListener(MessageReceived, handle_nac_auth) 
 

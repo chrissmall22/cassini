@@ -2,4 +2,6 @@
 *.pot
 *.pyc
 local_settings.py
-mysite
+www/www/*
+www/static/lib/*
+www/static/admin/*

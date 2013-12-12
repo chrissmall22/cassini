@@ -149,6 +149,19 @@ def set_mac_entry_state(mac,state):
     return
 
 
+def set_mac_entry_state(mac,user):
+
+    print "==SET USER== %s %s" % (mac, user)
+    session.query(model_orm.NAC_MacTable).filter_by(mac=mac).update({"user_id": user})
+    session.flush()
+    session.commit()
+    session.flush()
+    session.expire_all()
+    get_mac_entry(mac)
+
+    return
+
+
 # Get all the switches in "X" state
 def get_mac_entry_state(state):
         

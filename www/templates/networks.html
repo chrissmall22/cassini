@@ -1,0 +1,85 @@
+{% include 'header.html' %}
+{% include 'nav.html' %}
+
+
+		<style type="text/css" title="currentStyle">
+			@import "/static/lib/DataTables/media/css/demo_page.css";
+			@import "/static/lib/DataTables/media/css/demo_table.css";
+		</style>
+		<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css">
+		<link rel="stylesheet" type="text/css" href="/static/css/DT_bootstrap.css">
+
+		 <!-- Placed at the end of the document so the pages load faster -->
+    		<script src="/static/lib/jquery/jquery.js"></script> 
+    		<script src="/static/lib/bootstrap/dist/js/bootstrap.min.js"></script> 
+	
+                <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.js"></script>
+		<script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.dataTables.js"></script>
+
+                <script type="text/javascript" charset="utf-8" language="javascript" src="/static/js/DT_bootstrap.js"></script>
+
+
+<div class="page-header">
+    <h3>Hosts</h3>
+</div>
+
+
+
+<table cellpadding="0" cellspacing="0" border="0" class="display" id="example" width="100%">
+        <thead>
+                <tr>
+                        <th>MAC</th>
+                        <th>IP</th>
+                        <th>DPID</th>
+                        <th>Port</th>
+                        <th>User</th>
+                        <th>NAC State</th>
+                </tr>
+        </thead>
+        <tbody>
+		{% for table in mac_table %}
+      		<tr> 
+        	   	<td>{{ table.mac }}</td>
+			<td>{{ table.ip }}</td>
+			<td>{{ table.dpid }}</td>
+			<td>{{ table.port }}</td>
+			<td>{{ table.user_id }}</td>
+			<td>
+                        <div class="btn-group">
+			{% if table.state == 'REG' %}
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+			Register
+        		{% elif table.state == 'QUAR' %}
+          		<button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">
+			Quarantine
+        		{% elif table.state == 'AUTH' %}
+          		<button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown">
+			Authenticated
+			{% elif table.state == 'PORT' %}
+                        <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+                        Gateway 
+			{% elif table.state == 'OPER' %}
+                        <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+                        Operational
+        		{% else %}
+          		<button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+			Unknown State
+        		{% endif %}
+			<span class="caret"></span>
+			</button>
+			<ul class="dropdown-menu" role="menu">
+    				<li><a href="#">Registration</a></li>
+    				<li><a href="#">Authenticated</a></li>
+    				<li><a href="#">Operational</a></li>
+				<li><a href="#">Gateway</a></li>
+    				<li><a href="#">Quarantine</a></li>
+                        </ul>
+                        </div>
+			</td>
+      		</tr>
+		{% endfor %}	
+
+	</tbody>
+</table>
+
+

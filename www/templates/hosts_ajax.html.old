@@ -1,0 +1,19 @@
+{% include 'header.html' %}
+{% include 'nav.html' %}
+
+<div class="page-header">
+    <h3>Hosts</h3>
+</div>
+
+
+			
+
+<div class="btn-group"> 
+<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"> Foo <span class="caret"></span> 
+</button> 
+<ul class="dropdown-menu" role="menu">
+  <li><a href="#ffo">Registration</a></li>
+  <li><a href="#fff">Authenticated</a></li>
+</ul>
+</div>
+

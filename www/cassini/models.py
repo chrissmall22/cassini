@@ -30,6 +30,29 @@ class NacMactable(models.Model):
     class Meta:
         db_table = 'nac_mactable'
 
+    def __unicode__(self):
+   	return unicode(self.mac) or u''
+
+class Users(models.Model):
+    id = models.IntegerField(primary_key=True)
+    user_id = models.CharField(max_length=32L, blank=True)
+    real_name = models.CharField(max_length=64L, blank=True)
+    class Meta:
+        db_table = 'users'
+
+class Networks(models.Model):
+    id = models.IntegerField(primary_key=True)
+    net_name = models.CharField(max_length=32L, blank=True)
+    
+
+class Applications(models.Model):
+    id = models.IntegerField(primary_key=True)
+    app_name = models.CharField(max_length=32L, blank=True)
+    app_desc = models.CharField(max_length=128L, blank=True)
+    params = models.CharField(max_length=128L, blank=True) 
+    
+    
+
 class Switch(models.Model):
     id = models.IntegerField(primary_key=True)
     dpid = models.CharField(max_length=32L, blank=True)
@@ -37,4 +60,5 @@ class Switch(models.Model):
     os = models.CharField(max_length=128L, blank=True)
     class Meta:
         db_table = 'switch'
-
+    def __str__(self): 
+        return str(self.name) + "dpid :" + str(self.dpid)

@@ -1,0 +1,22 @@
+{
+ "nodes":[
+    {"name":"mininet-1","group":0},
+    {"name":"mininet-2","group":0},
+    {"name":"00:00:00:00:00:01","group":1},
+    {"name":"00:00:00:00:00:02","group":1},
+    {"name":"00:00:00:00:00:03","group":1},
+    {"name":"00:00:00:00:00:04","group":1}
+  ],
+ "links":[
+    {"source":1,"target":0},
+    {"source":2,"target":0},
+    {"source":3,"target":0},
+    {"source":4,"target":0},
+    {"source":5,"target":0},
+    {"source":0,"target":1},
+    {"source":0,"target":2},
+    {"source":0,"target":3},
+    {"source":0,"target":4},
+    {"source":0,"target":5}
+   ]
+}

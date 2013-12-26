@@ -7,29 +7,50 @@
 </div>
 
 <div class="row">
-   <div class="col-md-3">
-  <h4>Statistics</h4>
+   <div class="col-md-10">
+
 
   <table class="table table-hover">
-     <tr>
-        <td>Switches</td>
+    <thead>
+         <tr>
+		<th>Name</th>
+                <th>DPID</th>
+                <th>Operating System</th>
+		<th>Connected</th>
+                <th>Actions</th>
+         </tr>
+    </thead>
+    <tbody>  
+       <tr>
+        <td>mininet-dev1</td>
+        <td>1</td>
+        <td>Mininet</td>
+        <td>{{ current_date }}</td>	
+        <td>
+            <button type="button" class="btn btn-danger">Disable</button>
+        </td>
+      </tr>
+      <tr>
+        <td>mininet-dev2</td>
         <td>2</td>
-     </tr>
-     <tr>
-       <td>Hosts</td>
-       <td>32</td>
-     </tr> 
-     <tr>
-        <td>Users</td>
-        <td>28</td>
-     </tr> 
+        <td>Mininet</td>
+        <td>{{ current_date }}</td>
+        <td>
+            <button type="button" class="btn btn-success">Activate</button>
+        </td>
+
+      </tr>
+      <tr>
+	 {% for name in sw_table %}
+           <th>{{ name }}</th>
+         {% endfor %}
+      <tr>
+
+    </tbody>
    </table>
 
-  It is now {{ current_date }}.
+  It is now {{ sw_table.name }}.
  </div>
- <div class="col-md-9">
-   <h4>Network Map</h4>
-
 
 <style>
 

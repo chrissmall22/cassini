@@ -2,7 +2,7 @@
       <div class="navbar navbar-default navbar-fixed-top">
         <div class="container">
           <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-7">
           <div class="navbar-header">
             <a class="navbar-brand" href="/cassini">Cassini</a>
           </div>
@@ -15,8 +15,8 @@
 		  <li><a href="/cassini/users">Manage Users</a></li>	
 		  <li><a href="/cassini/hosts">Manage Hosts</a></li>
                   <li><a href="/cassini/switches">Manage Switches</a></li>
-                  <li><a href="/cassini/networks">Manage Networks</a></li>
-                  <li><a href="/cassini/admin/apps">Manage Applications</a></li>
+                  <li><a href="/cassini/projects">Manage Projects</a></li>
+                  <li><a href="/cassini/apps">Manage Applications</a></li>
                   <li><a href="/admin">Manage Cassini</a></li>
                 </ul>
               </li>
@@ -24,6 +24,7 @@
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Applications <b class="caret"></b></a>
                 <ul class="dropdown-menu">
                   <li><a href="/cassini/apps/nac">Network Access Control</a></li>
+		  <li class="disabled"><a href="/cassini/apps/patch">Remote Patch Panel</a></li>
                   <li class="disabled"><a href="/cassini/apps/bonjour">Bonjour Manager</a></li>
                   <li class="disabled"><a href="/cassini/apps/openstack">OpenStack Connector</a></li>
                   <li class="disabled"><a href="/cassini/apps/dcs">Dynamic Circuit Services</a></li>
@@ -37,8 +38,15 @@
             </ul>
           </div><!--/.nav-collapse -->
           </div>
-          <div class="col-md-4">
+          <div class="col-md-5">
             <div class="nav navbar-nav pull-right">
+              <li class="dropdown project">
+		<a href="#" class="dropdown-toggle" data-toggle="dropdown">Current Project: TM-dev1<b class="caret"></b></a>
+		<ul class="dropdown-menu">
+                  <li><a href="/cassini/projects/">TM-dev1</a></li>
+		</ul>
+              </li>	
+                
               <li class="avatar"><img class="avatar" src="http://www.gravatar.com/avatar/d6d2a87c2342bfc6452bff451eae9146?s=35">Chris Small</li>
              </div>
           </div>    

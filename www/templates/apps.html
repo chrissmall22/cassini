@@ -1,0 +1,65 @@
+{% include 'header.html' %}
+{% include 'nav.html' %}
+
+
+		<style type="text/css" title="currentStyle">
+			@import "/static/lib/DataTables/media/css/demo_page.css";
+			@import "/static/lib/DataTables/media/css/demo_table.css";
+		</style>
+		<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css">
+		<link rel="stylesheet" type="text/css" href="/static/css/DT_bootstrap.css">
+
+		 <!-- Placed at the end of the document so the pages load faster -->
+    		<script src="/static/lib/jquery/jquery.js"></script> 
+    		<script src="/static/lib/bootstrap/dist/js/bootstrap.min.js"></script> 
+	
+                <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.js"></script>
+		<script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.dataTables.js"></script>
+
+                <script type="text/javascript" charset="utf-8" language="javascript" src="/static/js/DT_bootstrap.js"></script>
+		<script type="text/javascript" charset="utf-8" language="javascript" src="/static/js/cassini.js"></script>
+
+
+<div class="page-header">
+    <h3>Applications</h3>
+</div>
+
+<table cellpadding="0" cellspacing="0" border="0" class="display" id="example" width="100%">
+        <thead>
+                <tr>
+                        <th>Name</th>
+                        <th>Endpoint</th>
+                        <th>Status</th>
+                </tr>
+        </thead>
+        <tbody>
+		<tr>
+                        <th>Network Access Control</th>
+                        <th>128.208.127.6/cassini/nac</th>
+                        <th><button type="button" class="btn btn-danger">Disable</button></th>
+                </tr>
+		<tr>
+                        <th>Patch Panel</th>
+                        <th>128.208.127.6/cassini/patch</th>
+                        <th><button type="button" class="btn btn-success">Activate</button></th>
+                </tr>
+                 <tr>
+                        <th>Bonjour Manager</th>
+                        <th>128.208.127.6/cassini/bonjour</th>
+                        <th><button type="button" class="btn btn-success">Activate</button></th>
+                </tr>
+		 <tr>
+                        <th>OpenStack Connector</th>
+                        <th>128.208.127.6/cassini/openstack</th>
+                        <th><button type="button" class="btn btn-success">Activate</button></th>
+                </tr>
+		 <tr>
+                        <th>Dynamic Circuit Services</th>
+                        <th>128.208.127.6/cassini/dcs</th>
+                        <th><button type="button" class="btn btn-success">Activate</button></th>
+                </tr> 
+	</tbody>
+</table>
+
+{% include 'footer_nojs.html' %}
+

@@ -40,24 +40,30 @@ class Users(models.Model):
     class Meta:
         db_table = 'users'
 
-class Networks(models.Model):
+class Projects(models.Model):
     id = models.IntegerField(primary_key=True)
-    net_name = models.CharField(max_length=32L, blank=True)
-    
+    proj_name = models.CharField(max_length=32L, blank=True)
+    proj_desc = models.CharField(max_length=128L, blank=True)
+    owner = models.CharField(max_length=32L, blank=True)
+    admin_status = models.IntegerField(null=True, blank=True)
+    status =  models.IntegerField(null=True, blank=True)
+    endpoint = models.CharField(max_length=64L, blank=True)
+    endpoint_type = models.CharField(max_length=32L, blank=True)
 
 class Applications(models.Model):
     id = models.IntegerField(primary_key=True)
     app_name = models.CharField(max_length=32L, blank=True)
     app_desc = models.CharField(max_length=128L, blank=True)
     params = models.CharField(max_length=128L, blank=True) 
+    status = models.IntegerField(null=True, blank=True)
     
     
-
 class Switch(models.Model):
     id = models.IntegerField(primary_key=True)
     dpid = models.CharField(max_length=32L, blank=True)
     name = models.CharField(max_length=128L, blank=True)
     os = models.CharField(max_length=128L, blank=True)
+    status = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = 'switch'
     def __str__(self): 

@@ -6,8 +6,8 @@ var data3 = randomData(data_size, now);
 var data4 = randomData(data_size, now);
         
 var data1_trunc = randomData_const(data_size, now, 1);
-var data2_trunc = randomData_trunc(data_size, now, 30);
-var data3_trunc = randomData_trunc(data_size, now, 25);
+var data2_trunc = randomData_const(data_size, now, 5);
+var data3_trunc = randomData_const(data_size, now, 1);
      
         
 //Random time series data generator

@@ -24,9 +24,20 @@ urlpatterns = patterns('',
     url(r'^login/$', views.login),
     url(r'^hosts/$', views.hosts),
     url(r'^switches/$', views.switches),
+    url(r'^projects/$', views.projects),
+
+    # Applications
+    url(r'^apps/$', views.apps),
     url(r'^apps/nac/$', views.placeholder),
     #url(r'^admin/', include('django.contrib.admin.cassini.urls')), 
-    url(r'^ajax/$' , views.ajax),
+
+    # AJAX Web Services URLS
+    url(r'^ajax/hosts$' , views.ajax_hosts),
+    url(r'^ajax/users$' , views.ajax_users),
+    url(r'^ajax/switches$' , views.ajax_switches),
+    url(r'^ajax/projects$' , views.ajax_projects), 
+
+    # Database POST updates
     url(r'^updatedb/$' , views.update_db),
 )
 

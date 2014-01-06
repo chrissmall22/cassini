@@ -1,7 +1,26 @@
 <html>
   <head>
    <title>Cassini Overview</title>
+   <link rel="shortcut icon" href="/static/images/saturn.ico">
    <!-- Bootstrap core CSS -->
+   <link href="/static/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+   <!-- Custom styles for this template -->
+   <link href="/static/css/cassini.css" rel="stylesheet">
+  
+   <style type="text/css" title="currentStyle">
+          @import "/static/lib/DataTables/media/css/demo_page.css";
+          @import "/static/lib/DataTables/media/css/demo_table.css";
+   </style>
+   <link rel="stylesheet" type="text/css" href="/static/css/DT_bootstrap.css">
+
+   <!-- Placed at the end of the document so the pages load faster -->
+   <script src="/static/lib/jquery/jquery.js"></script> 
+   <script src="/static/lib/bootstrap/dist/js/bootstrap.min.js"></script> 
+        
+   <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.js"></script>
+   <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.dataTables.js"></script>
+
+   <script type="text/javascript" charset="utf-8" language="javascript" src="/static/js/DT_bootstrap.js"></script>
 
    <!-- Esnet D3 based graphs-->
    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
@@ -68,6 +87,8 @@
 </head>
 <body>
 
+{% include 'nav.html' %}
+
 <!-- Wrap all page content here -->
 <div id="wrap">
 
@@ -109,6 +130,19 @@
 
    <h4>Active Users</h4>
      <div id="total_users"></div>
+<!-- 
+ 
+   <h4>Switches</h4>  
+     <div id="total_switches">
+     </div>
+   <h4>Hosts</h4>  
+     <div id="total_macs">
+     </div>
+   <h4>Users</h4>  
+     <div id="total_users">
+     </div>
+-->     
   </div>
-</body>
-</html>
+</div> 
+
+{% include 'footer_nojs.html' %}

@@ -166,7 +166,7 @@ $(document).ready(function() {
                 },
                 'bLengthChange': false,
 		"bProcessing": true,
-		"sAjaxSource": '/cassini/ajax/',
+		"sAjaxSource": '/cassini/ajax/hosts',
 		"aoColumns": [
             	    { "mData": "fields.mac" },
 		    { "mData": "fields.ip" },
@@ -176,4 +176,72 @@ $(document).ready(function() {
 		    { "mData": "fields.state" },
          	]
         } );
+
+
+        $('#user_table').dataTable( {
+                "sDom": "<'row'<'span4'l><'span11'f>r>t<'row'<'span4'i><'span11'p>>",
+                "sPaginationType": "bootstrap",
+                "oLanguage": {
+                        "sLengthMenu": "_MENU_ records per page"
+                },
+                'bLengthChange': false,
+                "bProcessing": true,
+                "sAjaxSource": '/cassini/ajax/users',
+                "aoColumns": [
+                    { "mData": "user_id" },
+                    { "mData": "num_hosts" },
+                    { "mData": "status" },
+                ]
+        } );
+
+
+	$('#switch_table').dataTable( {
+                "sDom": "<'row'<'span4'l><'span11'f>r>t<'row'<'span4'i><'span11'p>>",
+                "sPaginationType": "bootstrap",
+                "oLanguage": {
+                        "sLengthMenu": "_MENU_ records per page"
+                },
+                'bLengthChange': false,
+                "bProcessing": true,
+                "sAjaxSource": '/cassini/ajax/switches',
+                "aoColumns": [
+                    { "mData": "fields.name" },
+                    { "mData": "fields.os" },
+                    { "mData": "fields.dpid" },
+                    { "mData": "fields.status" },
+                ]
+        } );
+
+	$('#proj_table').dataTable( {
+                "sDom": "<'row'<'span4'l><'span11'f>r>t<'row'<'span4'i><'span11'p>>",
+                "sPaginationType": "bootstrap",
+                "oLanguage": {
+                        "sLengthMenu": "_MENU_ records per page"
+                },
+                'bLengthChange': false,
+                "bProcessing": true,
+                "sAjaxSource": '/cassini/ajax/projects',
+                "aoColumns": [
+                    { "mData": "fields.proj_name" },
+                    { "mData": "fields.proj_desc" },
+                    { "mData": "fields.endpoint_type" },
+		    { "mData": "fields.endpoint" },
+                    { "mData": "fields.status" },
+		    { "mData": "fields.admin_status" },
+                ]
+        } );
+
+
+	$('#apps_table').dataTable( {
+                "sDom": "<'row'<'span4'l><'span11'f>r>t<'row'<'span4'i><'span11'p>>",
+                "sPaginationType": "bootstrap",
+                "oLanguage": {
+                        "sLengthMenu": "_MENU_ records per page"
+                },
+                'bLengthChange': false,
+        } );
+
+
+
+
 } );

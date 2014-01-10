@@ -15,6 +15,14 @@
 </style>
 <body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
+
+
+
+
+<div id="topo"></div>
+<h3>D3.js Topo demo</h3>
+
+
 <script>
 
 var width = 960,
@@ -26,7 +34,7 @@ var force = d3.layout.force()
     .linkDistance(50)
     .size([width, height]);
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#topo").append("svg")
     .attr("width", width)
     .attr("height", height);
 
@@ -53,6 +61,13 @@ d3.json("/static/topo.json", function(error, graph) {
   node.append("title")
       .text(function(d) { return d.name; });
 
+  node.append("image")
+      .attr("xlink:href", "https://github.com/favicon.ico")
+      .attr("x", -8)
+      .attr("y", -8)
+      .attr("width", 16)
+      .attr("height", 16);
+
   node.append("text")
     .attr("class", "word")
     .attr("dy", ".35em")
@@ -71,6 +86,5 @@ d3.json("/static/topo.json", function(error, graph) {
 
 </script>
 
-	<h3>D3.js Topo demo</h3>
-
 </body>
+</html>

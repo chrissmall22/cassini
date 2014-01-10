@@ -28,7 +28,7 @@ urlpatterns = patterns('',
 
     # Applications
     url(r'^apps/$', views.apps),
-    url(r'^apps/nac/$', views.placeholder),
+    url(r'^apps/nac/$', views.hosts),
     #url(r'^admin/', include('django.contrib.admin.cassini.urls')), 
 
     # AJAX Web Services URLS

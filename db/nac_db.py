@@ -149,7 +149,7 @@ def set_mac_entry_state(mac,state):
     return
 
 
-def set_mac_entry_state(mac,user):
+def set_mac_entry_user(mac,user):
 
     print "==SET USER== %s %s" % (mac, user)
     session.query(model_orm.NAC_MacTable).filter_by(mac=mac).update({"user_id": user})

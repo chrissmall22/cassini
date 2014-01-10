@@ -31,6 +31,7 @@ from time import mktime
 from cassini.db import nac_db, model_orm
 from cassini.db.nac_db import *
 
+
 import socket
 
 #import mysql.connector
@@ -89,14 +90,14 @@ def redirect_html(event,packet,url,rnum):
          send_tcp_syn_ack(event,packet)
          print "== SYN/ACK"
        # if TCP is established
-       elif (tcp_in.ACK == True and tcp_in.PSH == False and tcp_in.FIN == False ): 
+       elif (tcp_in.ACK == True and tcp_in.PSH == False and tcp_in.FIN == False and tcp_in.RST == False): 
          print "== Established ACK recieved"
        elif (tcp_in.ACK == True and  tcp_in.PSH == True):
          # Check if we have sent a request already
          if rnum < 1: 
-           # TODO: Lets check if this is a HTTP GET/POS
+           # Lets check if this is a HTTP GET/POS
            request  = packet.raw[66:69]
-           if str(request) == 'GET':
+           if (str(request) == 'GET' or str(request) == 'POS') :
              print "Http request seen %s : %d : %d request" % (request, packet.hdr_len,rnum)
              # Install path to portal
              push_portal_rule(event,packet.src)
@@ -115,9 +116,21 @@ def redirect_html(event,packet,url,rnum):
          # Close our side of the connection
          send_tcp_fin_ack(event,packet)
          rnum = 0
+       elif (tcp_in.RST == True):
+         print "== Reset recieved Connection closed"
+         rnum = 0 
          #send_tcp_reset(event,packet)
-         
+         #denyflow(packet,event)
        return rnum   
+
+
+def denyflow(flow, event):
+
+  msg_drop = of.ofp_flow_mod()
+  msg_drop.priority = 10
+  msg_drop.match.dl_src = flow.src
+  event.connection.send(msg_drop)
+  return
 		
 def send_tcp_syn_ack(event,packet):
       
@@ -242,8 +255,8 @@ def send_tcp_fin (event,packet):
    http_resp.FIN = True     
    http_resp.dstport = tcp_in.srcport
    http_resp.srcport = tcp_in.dstport
-   http_resp.seq = tcp_in.ack 
-   http_resp.ack = tcp_in.seq 
+   http_resp.seq = tcp_in.seq
+   http_resp.ack = 0 
    http_resp.options = tcp_in.options
    http_resp.off = 8
    http_resp.win = tcp_in.win
@@ -403,7 +416,7 @@ def push_portal_rule (event,client_mac):
      msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
      msg_http.match.tp_dst = HTTP_PORT
      msg_http.priority = of.OFP_DEFAULT_PRIORITY + 10
-     msg_http.buffer_id = event.ofp.buffer_id
+     #msg_http.buffer_id = event.ofp.buffer_id
      if gw_mac_entry.ip:
        msg_http.match.nw_dst = IPAddr(gw_mac_entry.ip)
      # Send to Gateway MAC if on same SW as GW 
@@ -416,7 +429,26 @@ def push_portal_rule (event,client_mac):
      # And port 443
      msg_http.match.tp_dst = HTTPS_PORT
      event.connection.send(msg_http)
+
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("173.250.227.13")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("140.142.214.185")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.179")
+     event.connection.send(msg_http)
+
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("140.142.12.139")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.207")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.143")
+     event.connection.send(msg_http)
+
      
+
+
    for client_mac_entry in client_mac_entry_list: 
      # From Portal Host -- 80
      msg_http_ret = of.ofp_flow_mod()
@@ -436,6 +468,27 @@ def push_portal_rule (event,client_mac):
      # Send HTTPS
      msg_http_ret.match.tp_src = HTTPS_PORT
      event.connection.send(msg_http_ret)
+
+     msg_auth = of.ofp_flow_mod()
+     msg_auth.match.dl_type = pkt.ethernet.IP_TYPE
+     msg_auth.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
+     msg_auth.match.tp_src = HTTPS_PORT
+     msg_auth.priority = of.OFP_DEFAULT_PRIORITY + 10
+     #msg_auth.buffer_id = event.ofp.buffer_id
+     msg_auth.match.dl_dst = EthAddr(client_mac_entry.mac)
+     # Send to Client MAC if on same SW as Client
+     if ((int(client_mac_entry.dpid) == event.dpid) and client_mac_entry.port):
+       msg_http_ret.actions.append(of.ofp_action_output(port = event.port))
+     else:
+       # If not on same SW push in NORMAL rule
+       msg_http_ret.actions.append(of.ofp_action_output(port = of.OFPP_NORMAL))
+     #event.connection.send(msg_http_ret)
+     # Send HTTPS
+     msg_http_ret.match.tp_src = HTTPS_PORT
+     event.connection.send(msg_http_ret)
+
+
+     
       
      
    

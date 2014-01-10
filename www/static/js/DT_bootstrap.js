@@ -177,6 +177,8 @@ $(document).ready(function() {
          	]
         } );
 
+        setInterval('$("#host_table").dataTable().fnDraw()', 5000);
+
 
         $('#user_table').dataTable( {
                 "sDom": "<'row'<'span4'l><'span11'f>r>t<'row'<'span4'i><'span11'p>>",

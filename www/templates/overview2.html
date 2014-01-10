@@ -1,37 +1,60 @@
-<html>
-  <head>
-   <title>Cassini Overview</title>
-   <link rel="shortcut icon" href="/static/images/saturn.ico">
-   <!-- Bootstrap core CSS -->
-   <link href="/static/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
-   <!-- Custom styles for this template -->
-   <link href="/static/css/cassini.css" rel="stylesheet">
+{% include 'header2.html' %}
+
+
+<body>
+ <!-- Custom styles for this template -->
+{% include 'nav2.html' %}
+
+
+<!-- Wrap all page content here -->
+<div id="wrap" style="padding-left: 40px;">
+
+<div class="page-header" style="padding-top: 40px;">
+    <h3>Cassini Network Edge Controller</h3>
+</div>
   
-   <style type="text/css" title="currentStyle">
-          @import "/static/lib/DataTables/media/css/demo_page.css";
-          @import "/static/lib/DataTables/media/css/demo_table.css";
-   </style>
-   <link rel="stylesheet" type="text/css" href="/static/css/DT_bootstrap.css">
+<div class="row">
+  <div class="col-md-3">
+  <h4>Totals</h4>
 
-   <!-- Placed at the end of the document so the pages load faster -->
-   <script src="/static/lib/jquery/jquery.js"></script> 
-   <script src="/static/lib/bootstrap/dist/js/bootstrap.min.js"></script> 
-        
-   <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.js"></script>
-   <script type="text/javascript" language="javascript" src="/static/lib/DataTables/media/js/jquery.dataTables.js"></script>
+  <table class="table table-hover">
+     <tr>
+        <td><a href="/cassini/switches">Switches</a></td>
+        <td>{{ tot_switches }}</td>
+     </tr>
+     <tr>
+       <td><a href="/cassini/hosts">Hosts</a></td>
+       <td>{{ tot_hosts }} </td>
+     </tr> 
+     <tr>
+        <td><a href="/cassini/users">Users</a></td>
+        <td>{{ tot_users }}</td>
+     </tr> 
+   </table>
 
-   <script type="text/javascript" charset="utf-8" language="javascript" src="/static/js/DT_bootstrap.js"></script>
+ </div>
+ 
+ <div class="col-md-9">
 
-   <!-- Esnet D3 based graphs-->
-   <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+   <h4>Topology</h4>
 
-   <script src="/static/lib/esviz/areachart.js"></script> 
-   <script src="/static/js/cassini_esviz.js"></script>
-   <script src="/static/js/cassini.js"></script>
+
+     <div id="topo2"></div>
+ 
+   <h4>Active Hosts</h4>
+     <div id="total_macs"></div>  
+     
+
+   <h4>Active Users</h4>
+     <div id="total_users"></div>
+  </div>
+ </div> <!--row-->
+</div> <!--wrap-->
+</div> <!--container-->
 
    <script>
-   var width = 960,
-    height = 500;
+   var width = 600,
+    height = 250;
 
    var color = d3.scale.category20();
 
@@ -40,7 +63,7 @@
     .linkDistance(30)
     .size([width, height]);
 
-   var svg = d3.select("div.topo2").append("svg")
+   var svg = d3.select("#topo2").append("svg")
     .attr("width", width)
     .attr("height", height);
 
@@ -61,6 +84,8 @@
     .enter().append("circle")
       .attr("class", "node")
       .attr("r", 15)
+      .on("mouseover", mouseover)
+      .on("mouseout", mouseout)
       .style("fill", function(d) { return color(d.group); })
       .call(force.drag);
 
@@ -82,67 +107,37 @@
         .attr("cy", function(d) { return d.y; });
   });
 });
+
+
+function mouseover() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", 16);
+}
+ 
+function mouseout() {
+  d3.select(this).select("circle").transition()
+      .duration(750)
+      .attr("r", 8);
+}
+
 </script>
 
-</head>
-<body>
+{% include 'footer_nojs2.html' %}
 
-{% include 'nav.html' %}
+   <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/lib/jquery/jquery.js"></script>
 
-<!-- Wrap all page content here -->
-<div id="wrap">
+    <link rel="stylesheet" type="text/css" href="/static/css/bs.css">
 
-<div class="page-header">
-    <h3>Cassini Network Edge Controller</h3>
-</div>
-  
-<div class="row">
-   <div class="col-md-3">
-  <h4>Totals</h4>
+    <!-- Esnet D3 based graphs-->
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 
-  <table class="table table-hover">
-     <tr>
-        <td>Switches</td>
-        <td>{{ tot_switches }}</td>
-     </tr>
-     <tr>
-       <td>Hosts</td>
-       <td>{{ tot_hosts }} </td>
-     </tr> 
-     <tr>
-        <td>Users</td>
-        <td>{{ tot_users }}</td>
-     </tr> 
-   </table>
+    <script src="/static/lib/esviz/areachart.js"></script>
+    <script src="/static/js/cassini_esviz.js"></script>
 
- </div>
- 
- <div class="col-md-9">
-
-   <h4>Topology</h4>
-
-
-     <div id="topo2"></div>
- 
-   <h4>Active Hosts</h4>
-     <div id="total_macs"></div>  
-     
-
-   <h4>Active Users</h4>
-     <div id="total_users"></div>
-<!-- 
- 
-   <h4>Switches</h4>  
-     <div id="total_switches">
-     </div>
-   <h4>Hosts</h4>  
-     <div id="total_macs">
-     </div>
-   <h4>Users</h4>  
-     <div id="total_users">
-     </div>
--->     
-  </div>
-</div> 
-
-{% include 'footer_nojs.html' %}
+    <!-- DataTables -->
+</body>
+</html>

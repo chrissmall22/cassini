@@ -1,11 +1,11 @@
 {
  "nodes":[
     {"name":"mininet-1","group":0},
-    {"name":"mininet-2","group":0},
     {"name":"00:00:00:00:00:01","group":1},
     {"name":"00:00:00:00:00:02","group":1},
     {"name":"00:00:00:00:00:03","group":1},
-    {"name":"00:00:00:00:00:04","group":1}
+    {"name":"00:00:00:00:00:04","group":1},
+    {"name":"01:00:00:00:00:00","group":1}
   ],
  "links":[
     {"source":1,"target":0},

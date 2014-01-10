@@ -42,6 +42,8 @@ class NAC (object):
     HTTPS_PORT = 443
     
     self.num_redirect = 0 
+  
+    self.established = {}
 
     # We want to hear PacketIn messages, so we listen
     # to the connection
@@ -53,6 +55,8 @@ class NAC (object):
     push_default_rules(event)
     # push trusted hosts
     push_trusted_hosts(event)
+    # Allow Shib IPs
+    push_shib(event)
     # Register Switch in the DB
     add_switch_db(event)        
     
@@ -74,8 +78,7 @@ class NAC (object):
     #print "=PI= mac=%s  state=%s db_state=%s" % ( packet.src, state, get_mac_entry(packet.src).state ) 
     # Check what state the host was in
     if state == 'OPER':
-      print "==OPER"
-      # Push in normal rule     
+      print "==OPER"      # Push in normal rule     
       push_normal(packet.src,event)
   	
     if state == 'REG':
@@ -93,9 +96,21 @@ class NAC (object):
         if tcp_in.dstport == 80:
            #print "== HTTP Packet port %s ==" % (event.port,)
            #push_portal_rule(event,packet.src)
-           print "== HTTP Packet redirect_html == %d" % (self.num_redirect)
-           ret = redirect_html(event,packet,'https://puppet.cac.washington.edu/cassini/index.cgi',self.num_redirect)
-           self.num_redirect = ret
+           print "== HTTP Packet redirect_html == %d %s : %d" % (self.num_redirect,str(packet.find("ipv4").srcip),tcp_in.srcport)
+           src_estab = str(packet.find("ipv4").srcip) + ':' + str(tcp_in.srcport)
+           rnum = 0
+           print self.established
+           if src_estab in self.established:
+             print "foo: %s" % (src_estab)
+             if self.established[src_estab] == "ESTABLISHED":
+               rnum = 1
+             elif self.established[src_estab] == "REDIRECT":
+               rnum = 2
+             else: 
+               rnum = 0
+           ret = redirect_html(event,packet,'https://puppet.cac.washington.edu/cassini/index.cgi',rnum)
+           self.established[src_estab] = ret
+           print "============ %s %s %d" % (src_estab,ret, rnum)
            #push_portal_rule(event,packet.src)
            
            
@@ -170,6 +185,8 @@ def push_dns_rule (event,client_mac):
     event.connection.send(msg_dns_ret)
   
 
+    
+    
 
 
 """
@@ -237,20 +254,57 @@ def push_default_rules (event):
    #event.connection.send(msg_http)
    
    # Push all DNS and HTTP to contriller to set up paths to portal and dns server
-   # Port 53
-   msg_dhcp = of.ofp_flow_mod()
-   msg_dhcp.match.dl_type = pkt.ethernet.IP_TYPE
-   msg_dhcp.match.nw_proto = pkt.ipv4.UDP_PROTOCOL
-   msg_dhcp.match.tp_dst = 53
-   #msg_dhcp.priority = of.OFP_DEFAULT_PRIORITY - 10
-   msg_dhcp.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER))
-   #event.connection.send(msg_dhcp)
+
+   # Push path to idp.u.washington.edu
+   # Should get this from DNS not hardcoded
+   
+
 
    # Drop everything except for the DNS and HTTP
    msg_drop = of.ofp_flow_mod()
    msg_drop.priority = of.OFP_DEFAULT_PRIORITY - 10
    #event.connection.send(msg_drop)
    
+
+
+def push_shib (event):
+
+     msg_http = of.ofp_flow_mod()
+     msg_http.match.dl_type = pkt.ethernet.IP_TYPE
+     msg_http.match.nw_proto = pkt.ipv4.TCP_PROTOCOL
+     msg_http.match.tp_dst = 443
+     msg_http.priority = of.OFP_DEFAULT_PRIORITY + 10
+     #msg_http.buffer_id = event.ofp.buffer_id
+           
+     msg_http.actions.append(of.ofp_action_output(port = 5))
+    
+           
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("173.250.227.13")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("140.142.214.185")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.179")
+     event.connection.send(msg_http)
+
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("173.250.227.27")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("140.142.12.139")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.207")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.143")
+     event.connection.send(msg_http)
+
+     msg_http.match.nw_dst = IPAddr("128.208.125.59")
+     event.connection.send(msg_http)
+
+     # CA
+     msg_http.match.tp_dst = 80
+     msg_http.match.nw_dst = IPAddr("178.255.83.1")
+     event.connection.send(msg_http)
+
    
 
  

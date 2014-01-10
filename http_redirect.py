@@ -89,12 +89,25 @@ def redirect_html(event,packet,url,rnum):
          offset = 20 + len(tcp_in.options)
          send_tcp_syn_ack(event,packet)
          print "== SYN/ACK"
+         return "SYN"
        # if TCP is established
        elif (tcp_in.ACK == True and tcp_in.PSH == False and tcp_in.FIN == False and tcp_in.RST == False): 
-         print "== Established ACK recieved"
+         print "== Established ACK recieved : %d" % (rnum)
+         estab_str = str(packet.find("ipv4").srcip) + ':' + str(tcp_in.srcport)
+         #self.established[estab_str] = 1
+
+         if rnum == 2:
+           # ACK after redirect - lets close connection
+           print " == TCP FIN"
+           send_tcp_reset(event,packet)
+           return "FIN"  
+         else:   
+           return "ESTABLISHED"
+
+
        elif (tcp_in.ACK == True and  tcp_in.PSH == True):
-         # Check if we have sent a request already
-         if rnum < 1: 
+         # Check if we are established
+         if rnum == 1: 
            # Lets check if this is a HTTP GET/POS
            request  = packet.raw[66:69]
            if (str(request) == 'GET' or str(request) == 'POS') :
@@ -103,25 +116,29 @@ def redirect_html(event,packet,url,rnum):
              push_portal_rule(event,packet.src)
              # Send HTTP redirect to portal
              send_redirect(event,packet,url)
-
-             rnum = rnum + 1
+             #print "== RESET"
+             #send_tcp_reset(event,packet)
            else:
              print "== Non GET packet to HTTP"
+           return "REDIRECT"
          else:  
            # ACK after redirect - lets close connection
            print " == TCP FIN"
            send_tcp_fin(event,packet)
+           #send_tcp_reset(event,packet)
+           return "FIN"  
        elif (tcp_in.ACK == True and tcp_in.FIN == True):
          print " === Recieved TCP FIN ACK =="
          # Close our side of the connection
          send_tcp_fin_ack(event,packet)
          rnum = 0
+         return "CLOSED"
        elif (tcp_in.RST == True):
          print "== Reset recieved Connection closed"
          rnum = 0 
          #send_tcp_reset(event,packet)
          #denyflow(packet,event)
-       return rnum   
+         return "CLOSED"    
 
 
 def denyflow(flow, event):
@@ -429,7 +446,29 @@ def push_portal_rule (event,client_mac):
      # And port 443
      msg_http.match.tp_dst = HTTPS_PORT
      event.connection.send(msg_http)
+
+     """
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("173.250.227.13")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("140.142.214.185")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.179")
+     event.connection.send(msg_http)
+
+     # Now lets setup links to udc.u.washington.edu
+     msg_http.match.nw_dst = IPAddr("173.250.227.27")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("140.142.12.139")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.207")
+     event.connection.send(msg_http)
+     msg_http.match.nw_dst = IPAddr("128.95.155.143")
+     event.connection.send(msg_http)
+     """
      
+
+
    for client_mac_entry in client_mac_entry_list: 
      # From Portal Host -- 80
      msg_http_ret = of.ofp_flow_mod()
